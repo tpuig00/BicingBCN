@@ -31,7 +31,12 @@ def cargar_datos():
             except Exception:
                 continue
 
-    return pd.concat(df_list, ignore_index=True) if df_list else None
+      merged_df = pd.concat(df_list, ignore_index=True) if df_list else None
+
+    if merged_df is not None:
+        df_2 = pd.read_csv('Informacio_Estacions_Bicing_2025.csv', usecols=['station_id', 'lat', 'lon'], low_memory=False) #aqui faig el merge amb el segon dataset, només agafo les variables geoespacials
+        merged_df = merged_df.merge(df_2, on='station_id', how='left')
+
+    return merged_df
 
 df = cargar_datos()
-
