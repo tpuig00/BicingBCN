@@ -93,5 +93,11 @@ def cargar_datos():
         capacity=('capacity', 'first')
     ).reset_index()
 
+    id = pd.read_csv('../data/metadata_sample_submission_2025.csv')
+
+    llista_stations = pd.unique(id['station_id'])
+
+    aggregated_df = aggregated_df['station_id'].isin(llista_stations)
+
     return aggregated_df
       
