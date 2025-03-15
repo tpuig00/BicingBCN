@@ -61,7 +61,7 @@ def cargar_datos():
     merged_df['sum_capacity'] = merged_df['num_bikes_available'] + merged_df['num_docks_available']
 
     # Calcular la mediana de sum_capacity por estación
-    median_capacity = merged_df.groupby('station_id')['sum_capacity'].median()
+    median_capacity = merged_df.groupby('station_id')['sum_capacity'].mean()
 
     def impute_capacity(row):
         return median_capacity[row['station_id']] if pd.isna(row['capacity']) else row['capacity']
