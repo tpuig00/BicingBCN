@@ -467,12 +467,13 @@ df_final.to_csv('predictions.csv', index=False)
 
 
 
+---
+---
 
 
 
 
-
-# 🛰 Side Project: Variables Espaciales para Estaciones Bicing
+# Side Project: Variables Espaciales para Estaciones Bicing
 
 Este análisis complementario estudia el contexto geoespacial de las estaciones de Bicing en Barcelona, integrando variables como centralidad en la red vial y proximidad a estaciones de metro.
 
