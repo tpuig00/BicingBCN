@@ -531,7 +531,6 @@ plt.show()
 ---
 
 ##  Asociación entre estaciones Bicing y betweenness
-
 ```python
 from scipy.spatial import KDTree
 import pandas as pd
@@ -554,6 +553,7 @@ for idx, row in bicing_stations.iterrows():
 
 bicing_stations.to_csv("bicing_with_sum_betweenness.csv", index=False)
 ```
+Se suma la centralidad de los nodos viales más cercanos (en un radio de 1 km) a cada estación de Bicing.
 
 ---
 
@@ -575,7 +575,7 @@ plt.show()
 ---
 
 ##  Cálculo de estaciones de metro cercanas
-
+Se calcula cuántas estaciones de metro hay a 100m de cada estación de Bicing.
 ```python
 metro_df = pd.read_csv("/content/metro_stops.csv")
 points_df = bicing_stations[['station_id', 'lat', 'lon']]
@@ -621,3 +621,10 @@ Y = merged_df_2['target']
 model = sm.OLS(Y, X).fit()
 print(model.summary())
 ```
+Se construye un modelo lineal para explicar la disponibilidad de anclajes en función de:
+
+- Centralidad vial (log-transf)
+
+- Densidad de metro (log-transf)
+
+- Latitud y longitud
