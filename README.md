@@ -463,3 +463,161 @@ df['percentage_docks_available'] = predictions
 df_final = df[['index', 'percentage_docks_available']]
 df_final.to_csv('predictions.csv', index=False)
 ```
+
+
+
+
+
+
+
+
+
+# 🛰 Side Project: Variables Espaciales para Estaciones Bicing
+
+Este análisis complementario estudia el contexto geoespacial de las estaciones de Bicing en Barcelona, integrando variables como centralidad en la red vial y proximidad a estaciones de metro.
+
+---
+
+##  Descarga y visualización de la red vial
+
+```python
+import osmnx as ox
+
+G = ox.graph_from_place("Barcelona, Spain", network_type="drive")
+fig, ax = ox.plot_graph(G)
+gdf_nodes, gdf_edges = ox.graph_to_gdfs(G)
+```
+
+---
+
+##  Cálculo de Betweenness Centrality
+
+```python
+import networkx as nx
+
+G_nx = nx.Graph(G)
+betweenness = {node: 0 for node in G_nx.nodes()}
+
+for source in G_nx.nodes():
+    shortest_paths = nx.single_source_shortest_path(G_nx, source, cutoff=5)
+    for target, path in shortest_paths.items():
+        if source != target:
+            for node in path[1:-1]:
+                betweenness[node] += 1
+```
+
+---
+
+##  Visualización de betweenness en la red vial
+
+```python
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
+import numpy as np
+
+scaler = MinMaxScaler(feature_range=(5, 50))
+scaled_sizes = scaler.fit_transform(np.array(list(betweenness.values())).reshape(-1, 1)).flatten()
+node_color = [plt.cm.Reds(betweenness.get(node, 0)) for node in G_nx.nodes()]
+node_size = [scaled_sizes[i] for i, node in enumerate(G_nx.nodes())]
+
+fig, ax = ox.plot_graph(G, node_color=node_color, node_size=node_size,
+                        edge_color="gray", bgcolor="white", show=False)
+plt.suptitle("Node Betweenness Centrality in Road Network")
+plt.title("Note: Darker colors indicate higher betweenness values.")
+plt.savefig("betweenness_centrality.png", dpi=300, bbox_inches="tight")
+plt.show()
+```
+
+---
+
+##  Asociación entre estaciones Bicing y betweenness
+
+```python
+from scipy.spatial import KDTree
+import pandas as pd
+
+bicing_stations = pd.read_csv("/content/Informacio_Estacions_Bicing_2025.csv")
+node_positions = {node: (data['y'], data['x']) for node, data in G.nodes(data=True)}
+node_coords = np.array(list(node_positions.values()))
+node_ids = list(node_positions.keys())
+tree = KDTree(node_coords)
+
+radius = 1000 / 111320
+bicing_stations["sum_betweenness"] = np.nan
+
+for idx, row in bicing_stations.iterrows():
+    station_coord = (row["lat"], row["lon"])
+    nearby_node_indices = tree.query_ball_point(station_coord, r=radius)
+    nearby_nodes = [node_ids[i] for i in nearby_node_indices]
+    sum_betweenness = np.sum([betweenness.get(node, 0) for node in nearby_nodes])
+    bicing_stations.at[idx, "sum_betweenness"] = sum_betweenness
+
+bicing_stations.to_csv("bicing_with_sum_betweenness.csv", index=False)
+```
+
+---
+
+##  Visualización de estaciones Bicing con betweenness
+
+```python
+fig, ax = ox.plot_graph(G, show=False, edge_color="gray", bgcolor="white")
+sc = ax.scatter(
+    bicing_stations["lon"], bicing_stations["lat"],
+    c=bicing_stations["sum_betweenness"], cmap="Reds",
+    edgecolors="black", alpha=0.8, s=40
+)
+plt.colorbar(sc, label="Sum of Betweenness of Nodes within 1 Km")
+plt.title("BICING Stations' Betweenness")
+plt.savefig("bicing_betweenness.png", dpi=300, bbox_inches="tight")
+plt.show()
+```
+
+---
+
+##  Cálculo de estaciones de metro cercanas
+
+```python
+metro_df = pd.read_csv("/content/metro_stops.csv")
+points_df = bicing_stations[['station_id', 'lat', 'lon']]
+
+points_coords = np.array(points_df[["lat", "lon"]])
+metro_coords = np.array(metro_df[["lat", "lon"]])
+tree = KDTree(metro_coords)
+
+radius = 100 / 111320
+points_df["metro_count"] = [len(tree.query_ball_point(coord, r=radius)) for coord in points_coords]
+points_df.to_csv("points_with_metro_count.csv", index=False)
+```
+
+---
+
+##  Variable dependiente: disponibilidad media de docks
+
+```python
+data_depvar = pd.read_csv('/content/data/2024_05_Maig_BicingNou_ESTACIONS.csv')
+grouped_df = data_depvar[['station_id','num_docks_available']].groupby('station_id').mean()
+
+bicing_station = pd.read_csv('/content/bicing_with_sum_betweenness.csv')
+merged_df = pd.merge(bicing_station, grouped_df, on='station_id', how='inner')
+merged_df_2 = pd.merge(merged_df, points_df, on='station_id', how='inner')
+
+merged_df_2['target'] = merged_df_2['num_docks_available'] / merged_df_2['capacity'] * 100
+```
+
+---
+
+##  Regresión OLS: betweenness, metro y localización
+
+```python
+import statsmodels.api as sm
+
+X = np.log1p(merged_df_2['sum_betweenness'])
+X = np.column_stack([X, np.log1p(merged_df_2['metro_count'])])
+X = np.column_stack([X, merged_df_2['lat_x']])
+X = np.column_stack([X, merged_df_2['lon_y']])
+X = sm.add_constant(X)
+
+Y = merged_df_2['target']
+model = sm.OLS(Y, X).fit()
+print(model.summary())
+```
