@@ -578,7 +578,7 @@ plt.show()
 ---
 
 ##  Cálculo de estaciones de metro cercanas
-Se calcula cuántas estaciones de metro hay a 100m de cada estación de Bicing.
+Se calcula cuántas estaciones de metro hay a 1000m de cada estación de Bicing.
 ```python
 metro_df = pd.read_csv("/content/metro_stops.csv")
 points_df = bicing_stations[['station_id', 'lat', 'lon']]
@@ -587,7 +587,7 @@ points_coords = np.array(points_df[["lat", "lon"]])
 metro_coords = np.array(metro_df[["lat", "lon"]])
 tree = KDTree(metro_coords)
 
-radius = 100 / 111320
+radius = 1000 / 111320
 points_df["metro_count"] = [len(tree.query_ball_point(coord, r=radius)) for coord in points_coords]
 points_df.to_csv("points_with_metro_count.csv", index=False)
 ```
