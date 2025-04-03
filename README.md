@@ -1,4 +1,6 @@
-#  Predicción de Ocupación en Estaciones de Bicing (Barcelona)
+# CAPSTONE PROJECT
+---
+#  Predicción de la disponibilidad de bicis en estaciones de Bicing de Barcelona
 
 Este proyecto realiza la preparación y modelado de datos históricos del sistema Bicing en Barcelona para predecir la ocupación de estaciones. Se utilizan técnicas de procesamiento distribuido, enriquecimiento con variables externas (clima y tiempo), ingeniería de características y codificación temporal.
 
@@ -51,7 +53,7 @@ def cargar_datos():
                 continue
             selected_files.append(os.path.join(data_path, file))
 ```
-Filtrado de archivos por año y mes. Se mantienen solo los meses de junio a diciembre de 2023 y 2024.
+Filtrado de archivos por año y mes. Se mantienen solo los años 2022, 2023 y 2024.
 
 ## Procesamiento paralelo de archivos CSV
 ```python
@@ -120,7 +122,7 @@ Se extraen columnas relevantes, se transforman tipos y se eliminan registros nul
     df_final['num_docks_available'] = df_final['num_docks_available'].clip(lower=0, upper=df_final['capacity'])
     df_final['target'] = df_final['num_docks_available'] / df_final['capacity']
 ```
-Se calcula la variable objetivo target como el porcentaje de disponibilidad de docks, y se imputan capacidades faltantes con la mediana por estación.
+Se imputan valores nulos de varias variables y se calcula la variable objetivo 'target' como el porcentaje de disponibilidad de docks. 
 
 
 ## Agregación horaria y filtrado por estaciones activas
@@ -161,7 +163,7 @@ def crear_campos_optimized(df):
 
     return df
 ```
-Se crean 4 variables que representan los valores históricos más recientes de target, y se filtran las observaciones sin historial suficiente.
+Se crean 4 variables que representan los valores de las 4 horas anteriores de la variable target, y se filtran las observaciones sin historial suficiente.
 
 ##  Clasificación de tipo de día (laboral, fin de semana, festivo)
 ```python
@@ -175,7 +177,7 @@ def day_categorization_bcn(df):
 
     return df.drop(columns=['date'])
 ```
-Clasificación del día para capturar patrones cíclicos o estructurales según la tipología del calendario.
+Se añade una variable según el tipo del día (laborable, finde de semana y festivo)  para capturar patrones cíclicos o estructurales según la tipología del calendario.
 
 ## Variables meteorológicas (clima diario)
 ```python
@@ -193,7 +195,7 @@ def weather_features(df_merge_final):
     df_final = df_merge_final.merge(export, on=["year", "month", "day"], how="inner")
     return df_final
 ```
-Se integran variables binarias que reflejan condiciones climáticas por día, útiles para entender el comportamiento de la demanda.
+Se integran variables binarias que reflejan condiciones climáticas por día.
 
 
 ## Codificación cíclica de mes, día y hora
@@ -212,7 +214,7 @@ def create_cyclic_features(df):
 ```
 Codificación trigonométrica para representar relaciones temporales de forma continua, evitando saltos artificiales en el cambio de valores como "mes 12 a mes 1".
 
-#  Preparación de Datos para Predicción
+##  Preparación de Datos para Predicción
 
 Este bloque ejecuta la carga completa de datos, aplica ingeniería de características y enriquece la información con variables temporales y climáticas.
 
@@ -235,9 +237,9 @@ df_merge_final = weather_features(df_merge_final)
 df_merge_final = create_cyclic_features(df_merge_final)
 ```
 
-#  Modelado Predictivo de Ocupación de Estaciones
+##  Modelado Predictivo de Ocupación de Estaciones
 
-Esta sección implementa diferentes modelos de regresión (Red Neuronal, Regresión Lineal y Random Forest) para predecir la ocupación de estaciones de Bicing, utilizando variables temporales, contextuales y climáticas.
+Esta sección implementa diferentes modelos de regresión (Red Neuronal, Regresión Lineal y Random Forest) para predecir la ocupación de estaciones de Bicing.
 
 ---
 
